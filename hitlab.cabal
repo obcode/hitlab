@@ -4,14 +4,14 @@
 name:                hitlab
 version:             0.1.0.0
 synopsis:            Manage git repositories for student tasks
--- description:
+description:         Manage git repositories for student tasks
 homepage:            https://github.com/obcode/hitlab
 license:             BSD3
 license-file:        LICENSE
 author:              Oliver Braun
 maintainer:          ob@obraun.net
 -- copyright:
--- category:
+category:            Other
 build-type:          Simple
 extra-source-files:  README.md
 cabal-version:       >=1.10
@@ -21,7 +21,11 @@ executable hitlab
   main-is:             Main.hs
   -- other-modules:
   -- other-extensions:
-  build-depends:       base >=4.7 && <4.8
+  build-depends:       base >=4.7 && <4.8,
+                       bytestring >= 0.10,
+                       cassava >= 0.4,
+                       optparse-applicative >= 0.11,
+                       vector >= 0.10
   -- hs-source-dirs:
   default-language:    Haskell2010
 
