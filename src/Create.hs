@@ -24,16 +24,20 @@ createOptions = Create
       <> metavar "DESCRIPTION"
       <> help "Use DESCRIPTION for repositories" )
     <*> strOption
-        ( long "template"
+        ( long "inputFilename"
       <> short 'f'
       <> metavar "FILENAME"
       <> help "Read moodle groups from FILENAME" )
     <*> strOption
-        ( long "template"
+        ( long "output"
       <> short 'o'
       <> value "gitolite.conf"
       <> metavar "FILENAME"
       <> help "write gitolite conf to FILENAME" )
+    <*> switch
+        ( long "readonly"
+      <> short 'r'
+      <> help "no write access for students" )
   )
 
 mkRepoEntries :: CreateOptions -> IO ()
@@ -41,6 +45,7 @@ mkRepoEntries opts = do
     content <- BL.readFile $ createInfile opts
     let groups = mkGroupsFromFile content
     let repoEntries = mkRepoEntries' (createPrefix opts) (createDesc opts) groups
+                                     (createReadOnly opts)
     writeFile (createOutfile opts) repoEntries
 
 mkGroupsFromFile :: BL.ByteString -> [Group]
@@ -63,11 +68,14 @@ mkGroupsFromFile contents =
             (\ (name, firstname, _ :: String, _ :: String, grp ) ->
                         (grp, filter (/=' ') $ firstname ++ name)) v
 
-mkRepoEntries' :: String -> String -> [Group] -> String
-mkRepoEntries' prefix desc groups =
+mkRepoEntries' :: String -> String -> [Group] -> Bool -> String
+mkRepoEntries' prefix desc groups readonly =
     let mkRepoEntry (Group name members) =
                "repo " ++ prefix ++ "-" ++ name ++ "\n"
             ++ "    - feedback = " ++ unwords members ++ "\n"
-            ++ "    RW         = " ++ unwords members ++ "\n"
+            ++ (if readonly
+                   then "    R          = "
+                   else "    RW         = "
+               ) ++ unwords members ++ "\n"
             ++ "    desc       = " ++ desc ++ "\n\n"
     in concatMap mkRepoEntry groups
