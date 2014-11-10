@@ -58,7 +58,7 @@ pullRepo opts repo = do
     alreadyExist <- doesDirectoryExist repo
     if not alreadyExist
     then
-      do putStrLn $ "Cloning\x1b[34m " ++ repo ++ "\x1b[0m"
+      do putStrLn $ "Cloning \x1b[34m" ++ repo ++ "\x1b[0m"
          (_, Just hout, _, ph) <- createProcess
             (proc "git" ["clone"
             , "ssh://" ++ pullUser opts ++ "@" ++ pullHost opts
@@ -70,7 +70,7 @@ pullRepo opts repo = do
          waitForProcess ph
          return ()
     else
-      do putStrLn $ "Pulling\x1b[34m " ++ repo ++ "\x1b[0m"
+      do putStrLn $ "Pulling \x1b[34m" ++ repo ++ "\x1b[0m"
          (_, Just hout, _, ph) <- createProcess
             (proc "git" ["pull", "origin", pullBranch opts])
                             { cwd = Just repo

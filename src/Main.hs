@@ -5,6 +5,7 @@ import           Options.Applicative
 import           Create
 import           Datatypes
 import           Pull
+import           Push
 
 args ::Options.Applicative.Parser Conf
 args = Conf
@@ -21,7 +22,9 @@ cmdParser = subparser $
     command "create" (info createOptions
         (progDesc "Create new repositories for groups"))
     <> command "pull" (info pullOptions
-        (progDesc "Pull all repos master branch, clones if not present"))
+        (progDesc "Pull from all repos, clones if not present"))
+    <> command "push" (info pushOptions
+        (progDesc "Push current repo into all given repos"))
 
 main :: IO ()
 main = do
@@ -38,4 +41,5 @@ process conf =
     case cmd conf of
         Create opts -> mkRepoEntries opts
         Pull opts   -> pull opts
+        Push opts   -> push opts
 
