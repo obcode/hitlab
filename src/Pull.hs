@@ -1,6 +1,15 @@
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE OverloadedStrings  #-}
 module Pull where
 
+import           Control.Logging     (log)
+import           Data.Data
+import           Data.Function       (on)
+import           Data.List           (groupBy, intercalate, isInfixOf, isPrefixOf,
+                                      sort)
+import           Data.Text           (pack)
 import           Options.Applicative
+import           Prelude             hiding (log)
 import           System.Directory    (doesDirectoryExist)
 import           System.IO           (hGetContents)
 import           System.Process      (StdStream (CreatePipe), createProcess,
@@ -9,6 +18,8 @@ import           System.Process      (StdStream (CreatePipe), createProcess,
 
 import           Datatypes
 import           Remote
+import           System.IO           (BufferMode (NoBuffering), hSetBuffering,
+                                      stdout)
 
 pullOptions = Pull
   <$> (PullOptions
@@ -44,6 +55,18 @@ pullOptions = Pull
       <> help "pull BRANCH" )
   )
 
+data PullResponse = Cloned String
+                  | NoChanges String
+                  | Changes String
+                  | Fatal String
+  deriving (Eq, Ord, Data, Show, Typeable)
+
+pullResponseRepo :: PullResponse -> String
+pullResponseRepo (Cloned    r) = r
+pullResponseRepo (NoChanges r) = r
+pullResponseRepo (Changes   r) = r
+pullResponseRepo (Fatal     r) = r
+
 pull :: PullOptions -> IO ()
 pull opts = do
     repoList <- getRemoteRepoList
@@ -51,33 +74,62 @@ pull opts = do
                     (pullHost   opts)
                     (pullPort   opts)
                     (pullPrefix opts)
-    mapM_ (pullRepo opts) repoList
+    responses <- mapM (pullRepo opts) repoList
+    putStrLn $ '\n' : stats responses
+    log $ pack $ longstats responses
+  where
+    groups = groupBy (on (==) toConstr) . sort
+    groupInfo = map getInfo . groups
+    getInfo group@(Cloned _:_)    =
+        "\x1b[34mCloned:     " ++ show ( length group ) ++ "\x1b[0m"
+    getInfo group@(NoChanges _:_) =
+        "\x1b[32mUp-to-date: " ++ show ( length group ) ++ "\x1b[0m"
+    getInfo group@(Changes _:_)   =
+        "\x1b[33mChanges:    " ++ show ( length group ) ++ "\x1b[0m"
+    getInfo group@(Fatal _:_)   =
+        "\x1b[31mFatal:      " ++ show ( length group ) ++ "\x1b[0m"
+    stats responses = intercalate "\n" $ groupInfo responses
+    getResponseString (Cloned    _:_) = "Cloned   "
+    getResponseString (NoChanges _:_) = "NoChanges"
+    getResponseString (Changes   _:_) = "Changes  "
+    getResponseString (Fatal     _:_) = "Fatal    "
+    getRepoInfo group = (getResponseString group, map pullResponseRepo group)
+    format (resp, repos) = resp ++ ": " ++ intercalate "\n           " repos
+    longstats = ('\n':) . intercalate "\n" . map (format . getRepoInfo) . groups
 
-pullRepo :: PullOptions -> FilePath -> IO ()
+pullRepo :: PullOptions -> FilePath -> IO PullResponse
 pullRepo opts repo = do
+    hSetBuffering stdout NoBuffering
+    putStr "."
     alreadyExist <- doesDirectoryExist repo
     if not alreadyExist
     then
-      do putStrLn $ "Cloning \x1b[34m" ++ repo ++ "\x1b[0m"
-         (_, Just hout, _, ph) <- createProcess
+      do log $ pack $ "Cloning " ++ repo
+         (_, Just hout, Just herr, ph) <- createProcess
             (proc "git" ["clone"
             , "ssh://" ++ pullUser opts ++ "@" ++ pullHost opts
                 ++ ":" ++ pullPort opts ++ "/" ++ repo , repo ])
                             { std_out = CreatePipe
                             , std_err = CreatePipe }
-         cloneInfo <- hGetContents hout
-         putStrLn $ "\x1b[32m" ++ cloneInfo ++ "\x1b[0m"
+         cloneInfo <- hGetContents herr
+         log $ pack $ cloneInfo
          waitForProcess ph
-         return ()
+         return $ Cloned repo
     else
-      do putStrLn $ "Pulling \x1b[34m" ++ repo ++ "\x1b[0m"
-         (_, Just hout, _, ph) <- createProcess
+      do log $ pack $ "Pulling " ++ repo
+         (_, Just hout, Just herr, ph) <- createProcess
             (proc "git" ["pull", "origin", pullBranch opts])
                             { cwd = Just repo
                             , std_out = CreatePipe
                             , std_err = CreatePipe }
          pullInfo <- hGetContents hout
-         putStrLn $ "\x1b[32m" ++ pullInfo ++ "\x1b[0m"
+         pullInfoErr <- hGetContents herr
+         log $ pack $ pullInfoErr
          waitForProcess ph
-         return ()
+         return $ (if "Already up-to-date" `isPrefixOf` pullInfo
+                   then NoChanges
+                   else if "fatal:" `isInfixOf` pullInfoErr
+                       then Fatal
+                       else Changes
+                  ) repo
 
