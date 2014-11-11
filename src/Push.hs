@@ -3,9 +3,8 @@ module Push where
 import           Options.Applicative
 import           System.Directory    (doesDirectoryExist)
 import           System.IO           (hGetContents)
-import           System.Process      (readProcess, 
-                                     StdStream (CreatePipe), createProcess,
-                                      cwd, proc, std_err, std_out,
+import           System.Process      (StdStream (CreatePipe), createProcess,
+                                      cwd, proc, readProcess, std_err, std_out,
                                       waitForProcess)
 
 import           Datatypes

@@ -5,7 +5,7 @@ import qualified Data.ByteString.Lazy as BL
 import           Data.Char
 import           Data.Csv
 import           Data.Function        (on)
-import           Data.List            (sortBy, groupBy)
+import           Data.List            (groupBy, sortBy)
 import qualified Data.Vector          as V
 import           Options.Applicative
 

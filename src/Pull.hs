@@ -5,21 +5,20 @@ module Pull where
 import           Control.Logging     (log)
 import           Data.Data
 import           Data.Function       (on)
-import           Data.List           (groupBy, intercalate, isInfixOf, isPrefixOf,
-                                      sort)
+import           Data.List           (groupBy, intercalate, isInfixOf,
+                                      isPrefixOf, sort)
 import           Data.Text           (pack)
 import           Options.Applicative
 import           Prelude             hiding (log)
 import           System.Directory    (doesDirectoryExist)
-import           System.IO           (hGetContents)
+import           System.IO           (BufferMode (NoBuffering), hGetContents,
+                                      hSetBuffering, stdout)
 import           System.Process      (StdStream (CreatePipe), createProcess,
                                       cwd, proc, std_err, std_out,
                                       waitForProcess)
 
 import           Datatypes
 import           Remote
-import           System.IO           (BufferMode (NoBuffering), hSetBuffering,
-                                      stdout)
 
 pullOptions = Pull
   <$> (PullOptions
@@ -112,7 +111,7 @@ pullRepo opts repo = do
                             { std_out = CreatePipe
                             , std_err = CreatePipe }
          cloneInfo <- hGetContents herr
-         log $ pack $ cloneInfo
+         log $ pack cloneInfo
          waitForProcess ph
          return $ Cloned repo
     else
@@ -124,7 +123,7 @@ pullRepo opts repo = do
                             , std_err = CreatePipe }
          pullInfo <- hGetContents hout
          pullInfoErr <- hGetContents herr
-         log $ pack $ pullInfoErr
+         log $ pack pullInfoErr
          waitForProcess ph
          return $ (if "Already up-to-date" `isPrefixOf` pullInfo
                    then NoChanges
