@@ -3,11 +3,12 @@
 module Pull where
 
 import           Control.Logging     (log)
+import           Control.Monad       (when)
 import           Data.Data
 import           Data.Function       (on)
 import           Data.List           (groupBy, intercalate, isInfixOf,
                                       isPrefixOf, sort)
-import           Data.Text           (pack)
+import           Data.Text           (pack, unpack)
 import           Options.Applicative
 import           Prelude             hiding (log)
 import           System.Directory    (doesDirectoryExist)
@@ -20,6 +21,7 @@ import           System.Process      (StdStream (CreatePipe), createProcess,
 import           Datatypes
 import           Remote
 
+pullOptions :: Parser Cmd
 pullOptions = Pull
   <$> (PullOptions
     <$> strOption
@@ -52,6 +54,12 @@ pullOptions = Pull
       <> value "master"
       <> metavar "BRANCH"
       <> help "pull BRANCH" )
+    <*> strOption
+        ( long "openwith"
+      <> short 'o'
+      <> value ""
+      <> metavar "PROGRAM"
+      <> help "open all repos with changes with PROGRAM" )
   )
 
 data PullResponse = Cloned String
@@ -66,8 +74,8 @@ pullResponseRepo (NoChanges r) = r
 pullResponseRepo (Changes   r) = r
 pullResponseRepo (Fatal     r) = r
 
-pull :: PullOptions -> IO ()
-pull opts = do
+pull :: RichConf -> PullOptions -> IO ()
+pull richconf opts = do
     repoList <- getRemoteRepoList
                     (pullUser   opts)
                     (pullHost   opts)
@@ -76,9 +84,18 @@ pull opts = do
     responses <- mapM (pullRepo opts) repoList
     putStrLn $ '\n' : stats responses
     log $ pack $ longstats responses
+    let repoProg = pullOpenWith opts
+    let repoProg' = if null repoProg
+            then maybe "" unpack $ maybeRepoPrg richconf
+            else repoProg
+    when (not $ null repoProg') $
+        mapM_ (createProcess . proc repoProg' . (:[]))
+              $ changedRepos $ groups responses
   where
     groups = groupBy (on (==) toConstr) . sort
+    groupInfo :: [PullResponse] -> [String]
     groupInfo = map getInfo . groups
+    getInfo :: [PullResponse] -> String
     getInfo group@(Cloned _:_)    =
         "\x1b[34mCloned:     " ++ show ( length group ) ++ "\x1b[0m"
     getInfo group@(NoChanges _:_) =
@@ -87,14 +104,22 @@ pull opts = do
         "\x1b[33mChanges:    " ++ show ( length group ) ++ "\x1b[0m"
     getInfo group@(Fatal _:_)   =
         "\x1b[31mFatal:      " ++ show ( length group ) ++ "\x1b[0m"
+    stats :: [PullResponse] -> String
     stats responses = intercalate "\n" $ groupInfo responses
+    getResponseString :: [PullResponse] -> String
     getResponseString (Cloned    _:_) = "Cloned   "
     getResponseString (NoChanges _:_) = "NoChanges"
     getResponseString (Changes   _:_) = "Changes  "
     getResponseString (Fatal     _:_) = "Fatal    "
+    getRepoInfo :: [PullResponse] -> (String, [String])
     getRepoInfo group = (getResponseString group, map pullResponseRepo group)
+    format :: (String, [String]) -> String
     format (resp, repos) = resp ++ ": " ++ intercalate "\n           " repos
+    longstats :: [PullResponse] -> String
     longstats = ('\n':) . intercalate "\n" . map (format . getRepoInfo) . groups
+    changedRepos = map pullResponseRepo
+                       . concat
+                       . filter ( (=="Changes  ") . getResponseString)
 
 pullRepo :: PullOptions -> FilePath -> IO PullResponse
 pullRepo opts repo = do

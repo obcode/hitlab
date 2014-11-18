@@ -1,10 +1,20 @@
 module Datatypes where
 
+import           Data.Text
+
 data Conf = Conf
     { conffile :: FilePath
     , cmd      :: Cmd
     }
   deriving (Show)
+
+data RichConf = RichConf
+    { conf         :: Conf
+    , maybeLogfile :: Maybe Text
+    , maybeRepoPrg :: Maybe Text
+    }
+
+data DefaultOptions
 
 data Cmd = Create CreateOptions
          | Pull PullOptions
@@ -26,19 +36,20 @@ data PullOptions = PullOptions
     , pullPort     :: String
     , pullPrefix   :: String -- Pull only repos starting with the prefix
     , pullBranch   :: String -- Pull branch (default: master)
+    , pullOpenWith :: String
     }
   deriving (Show)
 
 data PushOptions = PushOptions
-    { pushUser     :: String
-    , pushHost     :: String
-    , pushPort     :: String
-    , pushPrefix   :: String -- Push only to repos starting with the prefix
-    , pushBranch   :: String -- Push branch (default: master)
+    { pushUser   :: String
+    , pushHost   :: String
+    , pushPort   :: String
+    , pushPrefix :: String -- Push only to repos starting with the prefix
+    , pushBranch :: String -- Push branch (default: master)
     }
   deriving (Show)
 
 data Group = Group
-  { groupname :: String
+  { groupname    :: String
   , groupmembers :: [String]
   } deriving (Show)
