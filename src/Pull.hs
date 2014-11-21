@@ -88,8 +88,9 @@ pull richconf opts = do
     let repoProg' = if null repoProg
             then maybe "" unpack $ maybeRepoPrg richconf
             else repoProg
-    when (not $ null repoProg') $
-        (createProcess $ proc repoProg' $ changedRepos $ groups responses)
+    let changedRepos' = changedRepos $ groups responses
+    when (not $ null repoProg' || null changedRepos') $
+        (createProcess $ proc repoProg' changedRepos')
         >> return ()
   where
     groups = groupBy (on (==) toConstr) . sort
