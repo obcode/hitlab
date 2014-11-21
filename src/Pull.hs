@@ -124,7 +124,6 @@ pull richconf opts = do
 pullRepo :: PullOptions -> FilePath -> IO PullResponse
 pullRepo opts repo = do
     hSetBuffering stdout NoBuffering
-    putStr "."
     alreadyExist <- doesDirectoryExist repo
     if not alreadyExist
     then
@@ -138,6 +137,7 @@ pullRepo opts repo = do
          cloneInfo <- hGetContents herr
          log $ pack cloneInfo
          waitForProcess ph
+         putChar '+'
          return $ Cloned repo
     else
       do log $ pack $ "Pulling " ++ repo
@@ -150,10 +150,18 @@ pullRepo opts repo = do
          pullInfoErr <- hGetContents herr
          log $ pack pullInfoErr
          waitForProcess ph
-         return $ (if "Already up-to-date" `isPrefixOf` pullInfo
+         let response =
+                 (if "Already up-to-date" `isPrefixOf` pullInfo
                    then NoChanges
                    else if "fatal:" `isInfixOf` pullInfoErr
                        then Fatal
                        else Changes
                   ) repo
+         putChar $ responseToSymbol response
+         return response
+  where
+    responseToSymbol (Cloned    _) = '+'
+    responseToSymbol (NoChanges _) = '.'
+    responseToSymbol (Changes   _) = '#'
+    responseToSymbol (Fatal     _) = '!'
 
