@@ -89,8 +89,8 @@ pull richconf opts = do
             then maybe "" unpack $ maybeRepoPrg richconf
             else repoProg
     when (not $ null repoProg') $
-        mapM_ (createProcess . proc repoProg' . (:[]))
-              $ changedRepos $ groups responses
+        (createProcess $ proc repoProg' $ changedRepos $ groups responses)
+        >> return ()
   where
     groups = groupBy (on (==) toConstr) . sort
     groupInfo :: [PullResponse] -> [String]
