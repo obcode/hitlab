@@ -1,5 +1,5 @@
 -- | Helper functions for accessing the remote site.
-module Remote ( getRemoteRepoList ) where
+module Remote ( getRemoteRepoList, getRemoteRepoList' ) where
 
 import           Control.Applicative ((<$>))
 import           Data.List           (isInfixOf)
