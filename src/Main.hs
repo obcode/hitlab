@@ -24,7 +24,7 @@ args = Conf
         )
     <*> cmdParser
 
-cmdParser = subparser $
+cmdParser = hsubparser $
     command "create" (info createOptions
         (progDesc "Create new repositories for groups"))
     <> command "pull" (info pullOptions
