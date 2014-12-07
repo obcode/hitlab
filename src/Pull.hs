@@ -49,12 +49,6 @@ pullOptions = Pull
       <> metavar "REPOPREFIX"
       <> help "pull only repositories starting with PREFIX" )
     <*> strOption
-        ( long "branch"
-      <> short 'b'
-      <> value "master"
-      <> metavar "BRANCH"
-      <> help "pull BRANCH" )
-    <*> strOption
         ( long "openwith"
       <> short 'o'
       <> value ""
@@ -143,7 +137,7 @@ pullRepo opts repo = do
     else
       do log $ pack $ "Pulling " ++ repo
          (_, Just hout, Just herr, ph) <- createProcess
-            (proc "git" ["pull", "origin", pullBranch opts])
+            (proc "git" ["pull", "--all"])
                             { cwd = Just repo
                             , std_out = CreatePipe
                             , std_err = CreatePipe }
@@ -152,7 +146,7 @@ pullRepo opts repo = do
          log $ pack pullInfoErr
          waitForProcess ph
          let response =
-                 (if "Already up-to-date" `isPrefixOf` pullInfo
+                 (if "Already up-to-date" `isInfixOf` pullInfo
                    then NoChanges
                    else if "fatal:" `isInfixOf` pullInfoErr
                        then Fatal
