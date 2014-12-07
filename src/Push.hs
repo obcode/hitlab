@@ -10,6 +10,7 @@ import           System.Process      (StdStream (CreatePipe), createProcess,
 import           Datatypes
 import           Remote
 
+pushOptions :: Parser Cmd
 pushOptions = Push
   <$> (PushOptions
     <$> strOption
