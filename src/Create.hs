@@ -32,6 +32,7 @@ createOptions = Create
         ( long "output"
       <> short 'o'
       <> value "gitolite.conf"
+      <> showDefault
       <> metavar "FILENAME"
       <> help "write gitolite conf to FILENAME" )
     <*> switch
