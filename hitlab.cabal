@@ -12,9 +12,14 @@ build-type:          Simple
 extra-source-files:  README.md
 cabal-version:       >=1.10
 
-executable hitlab
-  hs-source-dirs:    src
-  main-is:           Main.hs
+library
+  exposed-modules:   Create
+                     Datatypes
+                     Pull
+                     Push
+                     Remote
+  hs-source-dirs:    library
+  default-language:  Haskell2010
   build-depends:     base >=4.7 && <4.8,
                      bytestring >= 0.10,
                      cassava >= 0.4,
@@ -25,7 +30,11 @@ executable hitlab
                      process >= 1.2,
                      text >= 1.2,
                      vector >= 0.10
-  default-language:  Haskell2010
+
+-- executable hitlab
+--   hs-source-dirs:    src
+--   main-is:           Main.hs
+--   default-language:  Haskell2010
 
 test-suite hspec
   type:              exitcode-stdio-1.0
