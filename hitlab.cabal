@@ -51,6 +51,7 @@ test-suite hspec
   hs-source-dirs:    src tests
   main-is:           Spec.hs
   Build-depends:     base >= 4.7 && < 4.8,
+                     hitlab,
                      bytestring >= 0.10,
                      cassava >= 0.4,
                      configurator >= 0.3,
